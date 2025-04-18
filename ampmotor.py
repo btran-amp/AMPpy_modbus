@@ -1,25 +1,35 @@
-from pymodbus.client import ModbusSerialClient
+from pymodbus.client import ModbusSerialClient, ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder, BinaryPayloadBuilder
-
 from MDXT_modbus_registers import *
-
 
 class AMP_Motor(object):
 
-    def __init__(self, identifier, slave, modbus_client):
+    def __init__(self, identifier, slave, client):
         """
         Initializes a new motor with a unique identifier, modbus slave, and modbus client.
         :param identifier: An identifier to recognize your specific motor.
-        :param slave: The modbus slave slave of your motor, set using the SimplexMotion tool.
-        :param modbus_client: The Pymodbus client designed to communicate with SimplexMotion motors over modbus.
+        :param slave: The modbus slave of your motor, set using the AMP Configurator.
+        :param modbus_client: The Pymodbus client designed to communicate with AMP motors over modbus. 
+        Parameter should be of ModbusSerialClient or ModbusTCPClient Type
         """
         self.identifier = identifier
         self.slave = slave
-        self.modbus_client = modbus_client
-        assert isinstance(identifier, str) and isinstance(slave, int) and isinstance(modbus_client, ModbusSerialClient)
-    
+        self.modbus_client = client
+        assert isinstance(identifier, str) and isinstance(slave, int)
+        isinstance(client, (ModbusSerialClient, ModbusTcpClient)),\
+
     def SCL_Command(self, OP_CODE, Param1=None, Param2=None, Param3=None, Param4=None) ->bool:
+        """
+        Executes an SCL command. Some operation codes (OP_CODEs) may require additional parameters.
+
+        Parameters:
+        - OP_CODE (required): The operation code to be written to register 400125.
+        - Param1 to Param4 (optional): Command-specific parameters. Only include them if the selected OP_CODE requires them.
+
+        Returns:
+        - bool: True if the command was successfully sent, False otherwise.
+        """
         if Param1 is not None:
             param1_response = self.modbus_client.write_register(SCL_Param1-1, Param1, slave=self.slave)
             pass
@@ -64,12 +74,22 @@ class AMP_Motor(object):
     def get_torque(self):
         """
         Gets the current torque of the motor. This is found in the motors torque register.
-        :return: An integer value for the current torque of the motor
+        :return: An integer percentage value for the current torque of the motor
         """
         torque_response = self.modbus_client.read_holding_registers(IC-1, count = 1, slave=self.slave)
         if torque_response.isError():
             raise Exception('Unable to retrieve current torque. {}'.format(torque_response))
         return torque_response.registers[0]
+    
+    def get_current(self):
+        """
+        Gets the immidiate current of the motor. This is found in the motors current register.
+        :return: An integer value for the current of the motor
+        """
+        torque_response = self.modbus_client.read_holding_registers(IC-1, count = 1, slave=self.slave)
+        if torque_response.isError():
+            raise Exception('Unable to retrieve current torque. {}'.format(torque_response))
+        return torque_response.registers[0]        
 
 
     def get_mode(self):
@@ -83,47 +103,10 @@ class AMP_Motor(object):
         decoder = BinaryPayloadDecoder.fromRegisters(mode.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
         return decoder.decode_32bit_int()
 
-
-    def go_with_speed(self, speed_units, acc_units):
-        """
-        Rotates the motor with a target speed, and acceleration
-        :param speed_units: Units of speed measured in SMUnits. Please use the converter class to convert from RPM.
-        :param acc_units: Units of acceleration measured in SMUnits. Please use the converter class to convert from RPM/s
-        :return:
-        """
-        # Check if speed mode, else set to speed and reset target
-        read_mode = self.get_mode()
-        if read_mode != 33:
-            reset = self.reset_motor()
-            if not reset:
-                raise Exception('Unable to reset motor. {}'.format(reset))
-            self.set_mode(33)
-        self.set_max_acceleration(acc_units)
-        return self.set_target(speed_units)
-
-    def go_to_position(self, steps, speed_units, acc_units):
-        """
-        Rotates the motor with a target position, at a set speed, and acceleration
-        :param steps: Units of position measured in steps. Please use the converter class to convert from steps to meters.
-        :param speed_units: Units of speed measured in SMUnits. Please use the converter class to convert from RPM.
-        :param acc_units: Units of acceleration measured in SMUnits. Please use the converter class to convert from RPM/s
-        :return:
-        """
-        # Check if position mode, else set to position and reset target
-        read_mode = self.get_mode()
-        if read_mode != 21:
-            reset = self.reset_motor()
-            if not reset:
-                raise Exception('Unable to reset motor. {}'.format(reset))
-            self.set_mode(21)
-        self.set_max_speed(speed_units)
-        self.set_max_acceleration(acc_units)
-        return self.set_target(steps)
-
     def set_max_speed(self, sm_units) -> bool:
         """
         Sets the maximum speed for a motor
-        :param sm_units: Units of speed measured in SMunits. Please use the converter class to convert from RPM to steps.
+        :param sm_units: Units of speed measured in SMunits. Use the converter class to convert from RPM to pulses.
         :return: Boolean indicating if the write was successful
         """
         builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
@@ -134,7 +117,7 @@ class AMP_Motor(object):
     def set_max_torque(self, torque) -> bool:
         """
         Sets the maximum torque for the motor
-        :param torque: Units of torque measured in mNm
+        :param torque: Units of torque measured in percentage of rated torque
         :return: Boolean indicating if the write was successful
         """
         builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
@@ -142,26 +125,46 @@ class AMP_Motor(object):
         write_response = self.modbus_client.write_registers(CC-1, builder.to_registers(), slave=self.slave)
         return not write_response.isError()
 
-    def set_max_acceleration(self, steps):
+    def set_max_acceleration(self, sm_units):
         """
-        Sets the maximum acceleration for the motor
-        :param steps: Units of acceleration measured in SMunits. Please use the converter class to convert from RPM/s to steps.
+        Sets the maximum acceleration for the motor. Also used for Max Brake deceleration.
+        :param sm_units: Units of acceleration measured 1/6 rps. Use the converter class to convert from RPM/s to register units.
         :return: Boolean indicating if the write was successful
         """
         builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
-        builder.add_32bit_int(steps)
+        builder.add_32bit_int(sm_units)
         write_response = self.modbus_client.write_registers(AM-1, builder.to_registers(), slave=self.slave)
         return not write_response.isError()
-
-    def set_max_deceleration(self, steps):
+    
+    def set_jog_acceleration(self, sm_units):
         """
-        Sets the maximum deceleration for the motor
-        :param steps: Units of acceleration measured in encoder pulses. Please use the converter class to convert from RPM/s to steps.
+        Sets the jog acceleration for the motor
+        :param sm_units: Units of acceleration measured in encoder pulses/s/s. Use the converter class to convert from RPM/s^2 to pulses.
         :return: Boolean indicating if the write was successful"""
         builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
-        builder.add_32bit_int(steps)
-        write_response = self.modbus_client.write_registers(AM-1, steps, slave=self.slave)
-        return not write_response.isError()
+        builder.add_32bit_int(sm_units)
+        write_response = self.modbus_client.write_registers(JA-1, builder.to_registers(), slave=self.slave)
+        return not write_response.isError()    
+    
+    def set_jog_deceleration(self, sm_units):
+        """
+        Sets the maximum deceleration for the motor
+        :param sm_units: Units of acceleration measured in encoder pulses. Use the converter class to convert from RPM to pulses/s.
+        :return: Boolean indicating if the write was successful"""
+        builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
+        builder.add_32bit_int(sm_units)
+        write_response = self.modbus_client.write_registers(JL-1, builder.to_registers(), slave=self.slave)
+        return not write_response.isError()    
+    
+    def set_jog_speed(self, sm_units):
+        """
+        Sets the jog speed for motor speed control
+        :param sm_units: Units of speed measured in 1/240 rps. Use the converter class to convert from RPM/s^2 to required units.
+        :return: Boolean indicating if the write was successful"""
+        builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
+        builder.add_32bit_int(sm_units)
+        write_response = self.modbus_client.write_registers(JS-1, builder.to_registers(), slave=self.slave)
+        return not write_response.isError()    
 
     def set_control_mode(self, control_mode):
         """
@@ -177,12 +180,46 @@ class AMP_Motor(object):
     def set_target_position(self, target):
         """
         Sets the target position for the motor
-        :param target: Point to point distance in pulses measured in SMunits. Please use the converter class to convert from desired units to steps.
+        :param target: Point to point distance in pulses measured in SMunits. Use the converter class to convert from desired units to pulses.
         :return: Boolean indicating if the write was successful
         """
         builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
         builder.add_32bit_int(target)
         request = self.modbus_client.write_registers(DI-1, builder.to_registers(), slave=self.slave)
+        return not request.isError()
+    
+    def set_p2p_vel(self, sm_units):
+        """
+        Sets the target point-to-point velocity
+        :param sm_units: Point to point move velocity in pulses measured in SMunits. Use the converter class to convert from desired units to pulses.
+        :return: Boolean indicating if the write was successful
+        """
+        builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
+        builder.add_32bit_int(sm_units)
+        request = self.modbus_client.write_registers(VE-1, builder.to_registers(), slave=self.slave)
+        return not request.isError()
+    
+
+    def set_p2p_accel(self, sm_units):
+        """
+        Sets the target point-to-point acceleration
+        :param sm_units: Point to point move acceleration in units of 10RPM/s. Use the converter class to convert from desired units to required units.
+        :return: Boolean indicating if the write was successful
+        """
+        builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
+        builder.add_32bit_int(sm_units)
+        request = self.modbus_client.write_registers(AC-1, builder.to_registers(), slave=self.slave)
+        return not request.isError()
+    
+    def set_p2p_decel(self, sm_units):
+        """
+        Sets the target point-to-point deceleration
+        :param sm_units: Point to point move deceleration of 10RPM/s. Use the converter class to convert from desired units to required units.
+        :return: Boolean indicating if the write was successful
+        """
+        builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
+        builder.add_32bit_int(sm_units)
+        request = self.modbus_client.write_registers(DE-1, builder.to_registers(), slave=self.slave)
         return not request.isError()
 
     def stop_motor(self):
@@ -192,3 +229,32 @@ class AMP_Motor(object):
         """
         return self.SCL_Command(0xE2)
 
+    def go_with_speed(self, speed_units, acc_units):
+        """
+        Rotates the motor with a target speed, and acceleration
+        :param speed_units: Units of speed measured in SMUnits. Use the converter class to convert from RPM.
+        :param acc_units: Units of acceleration measured in SMUnits. Use the converter class to convert from RPM/s
+        :return:
+        """
+        # Check if speed mode, else set to speed and reset target
+        read_mode = self.get_mode()
+        if read_mode != 10:
+            self.set_mode(10)
+        self.set_jog_acceleration(acc_units)
+        return self.set_jog_speed(speed_units)
+
+    def go_to_position(self, pulses, speed_units, acc_units):
+        """
+        Rotates the motor with a target position, at a set speed, and acceleration.
+        :param pulses: Units of position measured in pulses. Use the converter class to convert from desired units to pulses.
+        :param speed_units: Units of speed measured in 1/240rps. Use the converter class to convert from RPM.
+        :param acc_units: Units of acceleration measured in 10RPM/s. Use the converter class to convert from RPM/s
+        :return:
+        """
+        # Check if position mode, else set to position and reset target
+        read_mode = self.get_mode()
+        if read_mode != 21:
+            self.set_mode(21)
+        self.set_p2p_vel(speed_units)
+        self.set_p2p_accel(acc_units)
+        return self.set_target_position(pulses)
