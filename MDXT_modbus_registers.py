@@ -8,7 +8,7 @@ SCL_Param4 = 129
 EP = 11  # Encoder Position 32Bit
 IP = 7 # Immidiate Absolute Position 32Bit
 IV = 17 #Immediate Actual Velocity 
-
+IQ = 32 # Immedidiate Actual Current
 
 DI = 351  # Point-to-Point Distance 32Bit
 

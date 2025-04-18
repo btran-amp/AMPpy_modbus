@@ -70,27 +70,16 @@ class AMP_Motor(object):
         if speed_response.isError():
             raise Exception('Unable to retrieve current speed. {}'.format(speed_response))
         return speed_response.registers[0]
-
-    def get_torque(self):
-        """
-        Gets the current torque of the motor. This is found in the motors torque register.
-        :return: An integer percentage value for the current torque of the motor
-        """
-        torque_response = self.modbus_client.read_holding_registers(IC-1, count = 1, slave=self.slave)
-        if torque_response.isError():
-            raise Exception('Unable to retrieve current torque. {}'.format(torque_response))
-        return torque_response.registers[0]
     
     def get_current(self):
         """
         Gets the immidiate current of the motor. This is found in the motors current register.
         :return: An integer value for the current of the motor
         """
-        torque_response = self.modbus_client.read_holding_registers(IC-1, count = 1, slave=self.slave)
+        torque_response = self.modbus_client.read_holding_registers(IQ-1, count = 1, slave=self.slave)
         if torque_response.isError():
             raise Exception('Unable to retrieve current torque. {}'.format(torque_response))
         return torque_response.registers[0]        
-
 
     def get_mode(self):
         """
