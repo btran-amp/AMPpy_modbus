@@ -26,10 +26,6 @@ Input parameters directly affect motor behavior and must be configured correctly
 - If a gearbox or coupling ratio is involved and output-side motion is of interest, 
   set 'gear_multiplier' to reflect the actual mechanical ratio.
 """
-
-
-
-
 AMP_Axis1_Convert = AMP_Converter(steps_per_rev=20000, gear_multiplier=1)
 
 # Example 1: motor enable
