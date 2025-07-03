@@ -49,20 +49,20 @@ print(f"{AMP_Axis1.identifier} jog speed sent?: {Jog_speed_sent}")
 
 
 # Set acceleration, decleration, and jogging speed of axis2
-Jog_acceleration_sent = AMP_Axis1.set_jog_acceleration(AMP_Axis1_Convert.convert_acceleration_to_smunits(100))
+Jog_acceleration_sent = AMP_Axis1.set_jog_acceleration(AMP_Axis2_Convert.convert_acceleration_to_smunits(100))
 print(f"{AMP_Axis2.identifier} acceleration set to 100 rps/s: {Jog_acceleration_sent}")  
-Jog_deceleration_sent = AMP_Axis1.set_jog_deceleration(AMP_Axis1_Convert.convert_acceleration_to_smunits(100))
+Jog_deceleration_sent = AMP_Axis1.set_jog_deceleration(AMP_Axis2_Convert.convert_acceleration_to_smunits(100))
 print(f"{AMP_Axis2.identifier}  deceleration set to 100rps/s: {Jog_deceleration_sent}")
-Jog_speed_sent = AMP_Axis1.set_jog_speed(AMP_Axis1_Convert.convert_speed_to_VEunits(23*60))  # 23 rps
+Jog_speed_sent = AMP_Axis2.set_jog_speed(AMP_Axis2_Convert.convert_speed_to_VEunits(23*60))  # 23 rps
 print(f"{AMP_Axis2.identifier} jog speed sent?: {Jog_speed_sent}")
 
 
 # Set acceleration, decleration, and jogging speed of axis3
-Jog_acceleration_sent = AMP_Axis1.set_jog_acceleration(AMP_Axis1_Convert.convert_acceleration_to_smunits(100))
+Jog_acceleration_sent = AMP_Axis1.set_jog_acceleration(AMP_Axis3_Convert.convert_acceleration_to_smunits(100))
 print(f"{AMP_Axis3.identifier} acceleration set to 100 rps/s: {Jog_acceleration_sent}")
-Jog_deceleration_sent = AMP_Axis1.set_jog_deceleration(AMP_Axis1_Convert.convert_acceleration_to_smunits(100))
+Jog_deceleration_sent = AMP_Axis1.set_jog_deceleration(AMP_Axis3_Convert.convert_acceleration_to_smunits(100))
 print(f"{AMP_Axis3.identifier}  deceleration set to 100rps/s: {Jog_deceleration_sent}")
-Jog_speed_sent = AMP_Axis1.set_jog_speed(AMP_Axis1_Convert.convert_speed_to_VEunits(20*60))  # 20 rps
+Jog_speed_sent = AMP_Axis3.set_jog_speed(AMP_Axis3_Convert.convert_speed_to_VEunits(20*60))  # 20 rps
 print(f"{AMP_Axis3.identifier} jog speed sent?: {Jog_speed_sent}")
 
 # Enable all motors, then commensing jog
@@ -84,7 +84,7 @@ runtime_seconds = log_time * 60
 start_time = time.time()
 
 with open(log_filename, "w") as file:
-    file.write("[time, Immediate_Current_Value]\n")
+    file.write(f"[time, {AMP_Axis1.identifier}, {AMP_Axis2.identifier}, {AMP_Axis3.identifier}]\n")
     print(f"Logging started. Saving to '{log_filename}'...")
 
     while (time.time() - start_time) < runtime_seconds:
@@ -99,9 +99,7 @@ with open(log_filename, "w") as file:
             immediate_current_value3 = "ERROR"
             print(f"Error reading current: {e}")
 
-        file.write(f"[{elapsed_time}, {AMP_Axis1.identifier} current: {immediate_current_value1}]\n")
-        file.write(f"[{elapsed_time}, {AMP_Axis2.identifier} current: {immediate_current_value2}]\n")
-        file.write(f"[{elapsed_time}, {AMP_Axis3.identifier} current: {immediate_current_value3}]\n")
+        file.write(f"[{elapsed_time}, {immediate_current_value1}, {immediate_current_value2}, {immediate_current_value3}]\n")
         file.flush()
 
         time.sleep(1)  # log every second
