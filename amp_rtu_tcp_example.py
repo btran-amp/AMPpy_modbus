@@ -1,5 +1,5 @@
 from pymodbus.client import ModbusSerialClient as ModbusClientRTU
-from pymodbus.client import ModbusTcpClient as ModbusClientTCP
+#from pymodbus.client import ModbusTcpClient as ModbusClientTCP
 from ampmotor import AMP_Motor
 from AMP_Opcodes import *
 from conversions import AMP_Converter
@@ -10,14 +10,22 @@ import time
 Use either Modbus RTU or Modbus TCP based on the product's supported communication interface.
 Uncomment the appropriate line below.
 """
-#modbus_client = ModbusClientRTU(port="COM2", baudrate=9600, timeout=1)
-modbus_client = ModbusClientTCP(host='10.10.10.10', port=502) 
+modbus_client = ModbusClientRTU(port="COM8", baudrate=9600, timeout=1)
+#modbus_client = ModbusClientTCP(host='10.10.10.10', port=502) 
 
 # Create an instance of AMP_Motor
-AMP_Axis1 = AMP_Motor(identifier="MDXT", slave=32, client=modbus_client) 
+AMP_Axis1 = AMP_Motor(identifier="x", slave=1, client=modbus_client) 
 print(f"AMP_Axis1 identifier: {AMP_Axis1.identifier}")  # Output: MDXT
 print(f"AMP_Axis1 slave address: {AMP_Axis1.slave}")  # Output: 32
 
+
+AMP_Axis2 = AMP_Motor(identifier="MDXR83_Dyno", slave=2, client=modbus_client) 
+print(f"AMP_Axis1 identifier: {AMP_Axis1.identifier}")  # Output: MDXT
+print(f"AMP_Axis1 slave address: {AMP_Axis2.slave}")  # Output: 32
+
+AMP_Axis3 = AMP_Motor(identifier="MDXT62", slave=3, client=modbus_client) 
+print(f"AMP_Axis1 identifier: {AMP_Axis1.identifier}")  # Output: MDXT
+print(f"AMP_Axis1 slave address: {AMP_Axis3.slave}")  # Output: 32
 # Create an instance of AMP_Converter to handle unit conversions
 """
 Input parameters directly affect motor behavior and must be configured correctly.
