@@ -72,7 +72,9 @@ SCL_cmd_sent3 = AMP_Axis3.SCL_Command(ME)
 print(f"SCL command Motor Enable sent: {SCL_cmd_sent1}")
 
 Commence_jog_sent1 = AMP_Axis1.SCL_Command(CJ)
+time.sleep(15)
 Commence_jog_sent2 = AMP_Axis2.SCL_Command(CJ)
+time.sleep(15)
 Commence_jog_sent3 = AMP_Axis3.SCL_Command(CJ)
 print(f"Jog Motion in Progress: {Commence_jog_sent1}")
 
