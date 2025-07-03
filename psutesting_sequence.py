@@ -15,18 +15,18 @@ modbus_client = ModbusClientRTU(port="COM8", baudrate=9600, timeout=1)
 #modbus_client = ModbusClientTCP(host='10.10.10.10', port=502) 
 
 # Create an instance of AMP_Motor
-AMP_Axis1 = AMP_Motor(identifier="MXXR83_Auto", slave=1, client=modbus_client) 
+AMP_Axis1 = AMP_Motor(identifier="MXXR83_Auto", slave=3, client=modbus_client) 
 print(f"AMP_Axis1 identifier: {AMP_Axis1.identifier}")  # Output: MDXR_Auto
-print(f"AMP_Axis1 slave address: {AMP_Axis1.slave}")  # Output: 1
+print(f"AMP_Axis1 slave address: {AMP_Axis1.slave}")  # Output: 3
 
 
 AMP_Axis2 = AMP_Motor(identifier="MDXR83_Manual", slave=2, client=modbus_client) 
 print(f"AMP_Axis2 identifier: {AMP_Axis2.identifier}")  # Output: MDXR_Manual
 print(f"AMP_Axis2 slave address: {AMP_Axis2.slave}")  # Output: 2
 
-AMP_Axis3 = AMP_Motor(identifier="MDXT62", slave=3, client=modbus_client) 
+AMP_Axis3 = AMP_Motor(identifier="MDXT62", slave=1, client=modbus_client) 
 print(f"AMP_Axis3 identifier: {AMP_Axis3.identifier}")  # Output: MDXT
-print(f"AMP_Axis3 slave address: {AMP_Axis3.slave}")  # Output: 3
+print(f"AMP_Axis3 slave address: {AMP_Axis3.slave}")  # Output: 1
 # Create an instance of AMP_Converter to handle unit conversions
 
 """
@@ -63,7 +63,7 @@ Jog_acceleration_sent = AMP_Axis3.set_jog_acceleration(AMP_Axis3_Convert.convert
 print(f"{AMP_Axis3.identifier} acceleration set to 100 rps/s: {Jog_acceleration_sent}")
 Jog_deceleration_sent = AMP_Axis3.set_jog_deceleration(AMP_Axis3_Convert.convert_acceleration_to_smunits(100))
 print(f"{AMP_Axis3.identifier}  deceleration set to 100rps/s: {Jog_deceleration_sent}")
-Jog_speed_sent = AMP_Axis3.set_jog_speed(AMP_Axis3_Convert.convert_speed_to_VEunits(20*60))  # 20 rps
+Jog_speed_sent = AMP_Axis3.set_jog_speed(AMP_Axis3_Convert.convert_speed_to_VEunits(23*60))  # 23 rps
 print(f"{AMP_Axis3.identifier} jog speed sent?: {Jog_speed_sent}")
 
 # Enable all motors, then commensing jog
