@@ -3,12 +3,12 @@ from pymodbus.client import ModbusSerialClient as ModbusClientRTU
 from ampmotor import AMP_Motor
 from AMP_Opcodes import *
 from conversions import AMP_Converter
-import time
+import time 
 
 # Initialize Modbus client
 """
 Use either Modbus RTU or Modbus TCP based on the product's supported communication interface.
-Uncomment the appropriate line below.
+Uncomment the appropriate line below
 """
 modbus_client = ModbusClientRTU(port="COM8", baudrate=9600, timeout=1)
 #modbus_client = ModbusClientTCP(host='10.10.10.10', port=502) 
