@@ -4,6 +4,7 @@ from ampmotor import AMP_Motor
 from AMP_Opcodes import *
 from conversions import AMP_Converter
 import time 
+import keyboard
 
 # Initialize Modbus client
 """
@@ -100,9 +101,13 @@ with open(log_filename, "w") as file:
             immediate_current_value2 = "ERROR"
             immediate_current_value3 = "ERROR"
             print(f"Error reading current: {e}")
+        if keyboard.is_pressed('esc'):  
+            print("Esc key pressed. Exiting the loop...")
+            break
 
         file.write(f"[{elapsed_time}, {immediate_current_value1}, {immediate_current_value2}, {immediate_current_value3}]\n")
         file.flush()
+        
 
         time.sleep(1)  # log every second
 
@@ -120,28 +125,3 @@ SCL_cmd_sent3 = AMP_Axis3.SCL_Command(MD)
 print("All motors have been disabled")
 
 modbus_client.close()
-
-""" 
-    Testing Code
-    client = ModbusClient(
-    port="COM4",  # Adjust to your port
-    baudrate=9600,
-    timeout=1,
-    parity="N",
-    stopbits=1,
-    bytesize=8
-)
-
-if client.connect():
-    response = client.read_holding_registers(address=344, count=2, slave=32)  # STATUS register
-    if not response.isError():
-        high_word = response.registers[0]
-        low_word = response.registers[1]
-        value_32bit = (high_word << 16) | low_word
-        acceleration = AMP_Axis1_Convert.convert_smunits_to_acceleration(value_32bit)
-        print("32-bit Value at address 40345:", value_32bit)
-        print("Use AMP_Converter to convert to real units:", acceleration)
-        #print("32-bit Value at address 40038:", high_word)
-    else:
-        print("Error reading STATUS:", response)
-    client.close() """
