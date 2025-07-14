@@ -5,6 +5,30 @@ from AMP_Opcodes import *
 from conversions import AMP_Converter
 import time 
 import keyboard
+import threading
+
+def log_current(axis, filename, duration):
+    start_time = time.time()
+    with open(filename, "w") as file:
+        file.write(f"[time, {axis.identifier}]\n")
+        print(f"Logging started. Saving to '{filename}'...")
+
+        while (time.time() - start_time) < duration:
+            elapsed_time = round(time.time() - start_time, 2)
+            try:
+                current = axis.get_current()
+            except Exception as e:
+                current = "ERROR"
+                print(f"Error reading current: {e}")
+
+            if keyboard.is_pressed('esc'):
+                print("Esc key pressed. Exiting logging...")
+                break
+
+            file.write(f"[{elapsed_time}, {current}]\n")
+            file.flush()
+            time.sleep(0.030)
+    print("Logging complete.")
 
 # Initialize Modbus client
 """
@@ -31,55 +55,33 @@ print(f"{AMP_Axis.identifier} acceleration set to 100 rps/s: {Jog_acceleration_s
 Jog_deceleration_sent = AMP_Axis.set_jog_deceleration(AMP_Axis_Convert.convert_acceleration_to_smunits(1000))
 print(f"{AMP_Axis.identifier}  deceleration set to 100rps/s: {Jog_deceleration_sent}")
 
+
 # Jog Speed Set Below
 Jog_speed_sent = AMP_Axis.set_jog_speed(AMP_Axis_Convert.convert_speed_to_VEunits(25*60))  # 25 rps
 print(f"{AMP_Axis.identifier} jog speed sent?: {Jog_speed_sent}")
 
 
+# Start logging in a separate thread
+log_thread = threading.Thread(target=log_current, args=(AMP_Axis, "JL_1000_noRegen_25rps.txt", 10))
+log_thread.start()
+time.sleep(2)
 
 # Enable all motors
 SCL_cmd_sent = AMP_Axis.SCL_Command(ME)
 print(f"SCL command Motor Enable sent: {SCL_cmd_sent}")
 
 Commence_jog_sent = AMP_Axis.SCL_Command(CJ)
-
-
 print(f"Jog Motion in Progress: {Commence_jog_sent}")
 
-
-# Logging loop for 30 minute
-log_time = 10 #seconds
-log_filename = "JL_1000_noRegen_25rps.txt" 
-runtime_seconds = log_time
-start_time = time.time()
-
-with open(log_filename, "w") as file:
-    file.write(f"[time, {AMP_Axis.identifier}]\n")
-    print(f"Logging started. Saving to '{log_filename}'...")
-
-    while (time.time() - start_time) < runtime_seconds:
-        elapsed_time = round(time.time() - start_time, 2)
-        try:
-            immediate_current_value = AMP_Axis.get_current()
-        except Exception as e:
-            immediate_current_value = "ERROR"
-            print(f"Error reading current: {e}")
-        if keyboard.is_pressed('esc'):  
-            print("Esc key pressed. Exiting the loop...")
-            break
-
-        file.write(f"[{elapsed_time}, {immediate_current_value}]\n")
-        file.flush()
-        
-
-        time.sleep(0.030)  # log every second
-print("Logging complete.")
+time.sleep(4)
 
 # Stop Jogging
 motor_stop_sent = AMP_Axis.stop_motor()
 print("The motor has stopped moving")
 
-SCL_cmd_sent1 = AMP_Axis.SCL_Command(MD)
+SCL_cmd_sent = AMP_Axis.SCL_Command(MD)
 print("The motor has been disabled")
+
+log_thread.join()
 
 modbus_client.close()
