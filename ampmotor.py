@@ -61,15 +61,57 @@ class AMP_Motor(object):
         decoder = BinaryPayloadDecoder.fromRegisters(pos_response.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
         return decoder.decode_32bit_int()
 
+
+    def get_drivetemp(self) -> int:
+        """
+        Gets the current drive temperature of the motor. This is found in the motors drive temperature register.
+        :return: An integer value for the current temperature of the motor
+        """
+        drivetemp_response = self.modbus_client.read_holding_registers(IT-1, count = 1, slave=self.slave)
+        if drivetemp_response.isError():
+            raise Exception('Unable to retrieve current speed. {}'.format(drivetemp_response))
+        return drivetemp_response.registers[0]
+    
+    def get_dsptemp(self) -> int:
+        """
+        Gets the current dsp temperature of the motor. This is found in the motors dsp temperature register.
+        :return: An integer value for the current temperature of the motor
+        """
+        dsptemp_response = self.modbus_client.read_holding_registers(IT1-1, count = 1, slave=self.slave)
+        if dsptemp_response.isError():
+            raise Exception('Unable to retrieve current dsp temperature. {}'.format(dsptemp_response))
+        return dsptemp_response.registers[0]
+    
+    def get_position_error(self) -> int:
+        """
+        Gets the current encoder position error. This is found in the motors position error.
+        :return: An integer value for the immidiate position error of the motor
+        BROKENTBD
+        """
+        pos_error_response = self.modbus_client.read_holding_registers(IX-1, count = 2, slave=self.slave)
+        if pos_error_response.isError():
+            raise Exception('Unable to retrieve enc position error. {}'.format(pos_error_response))
+        return pos_error_response.registers[0]
+    
     def get_speed(self) -> int:
         """
         Gets the current speed of the motor. This is found in the motors speed register.
         :return: An integer value for the current speed of the motor
         """
-        speed_response = self.modbus_client.read_holding_registers(IV-1, count = 2, slave=self.slave)
+        speed_response = self.modbus_client.read_holding_registers(IV-1, count = 1, slave=self.slave)
         if speed_response.isError():
             raise Exception('Unable to retrieve current speed. {}'.format(speed_response))
         return speed_response.registers[0]
+    
+    def get_voltage(self) -> int:
+        """
+        Gets the DC bus voltage of the motor. This is found in the DC bus voltage register.
+        :return: An integer value for the current DC Bus Voltage of the motor
+        """
+        volt_response = self.modbus_client.read_holding_registers(IU-1, count = 1, slave=self.slave)
+        if volt_response.isError():
+            raise Exception('Unable to retrieve Immidiate DC Bus Voltage. {}'.format(volt_response))
+        return volt_response.registers[0]
     
     def get_current(self):
         """
