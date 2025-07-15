@@ -6,28 +6,42 @@ from conversions import AMP_Converter
 import time 
 import keyboard
 import threading
+import csv
 
-def log_current(axis, filename, duration):
+
+
+def log_values(axis, filename, duration):
     start_time = time.time()
     with open(filename, "w") as file:
-        file.write(f"[time, {axis.identifier}]\n")
+        file.write(f"time, current, drtemp, dsptemp, DCVolt, speed, pos\n")
         print(f"Logging started. Saving to '{filename}'...")
 
         while (time.time() - start_time) < duration:
             elapsed_time = round(time.time() - start_time, 2)
             try:
                 current = axis.get_current()
+                temp = axis.get_drivetemp() 
+                dsp_temp = axis.get_dsptemp()
+                DCvolts = axis.get_voltage()
+                speed = axis.get_speed()
+                pos= axis.get_position()
+
             except Exception as e:
                 current = "ERROR"
-                print(f"Error reading current: {e}")
+                temp = "ERROR"
+                dsp_temp = "ERROR"
+                DCvolts = "ERROR"
+                speed = "ERROR"
+                pos = "ERROR"
+                print(f"Error reading something: {e}")
 
             if keyboard.is_pressed('esc'):
                 print("Esc key pressed. Exiting logging...")
                 break
 
-            file.write(f"[{elapsed_time}, {current}]\n")
+            file.write(f"{elapsed_time}, {current}, {temp}, {dsp_temp}, {DCvolts}, {speed}, {pos}\n")
             file.flush()
-            time.sleep(0.030)
+
     print("Logging complete.")
 
 # Initialize Modbus client
@@ -48,23 +62,23 @@ AMP_Axis_Convert = AMP_Converter(steps_per_rev=10000, gear_multiplier=1)
 
 
 # Acceleration Set Below
-Jog_acceleration_sent = AMP_Axis.set_jog_acceleration(AMP_Axis_Convert.convert_acceleration_to_smunits(100))
+Jog_acceleration_sent = AMP_Axis.set_jog_acceleration(AMP_Axis_Convert.convert_acceleration_to_smunits(300))
 print(f"{AMP_Axis.identifier} acceleration set to 100 rps/s: {Jog_acceleration_sent}")
 
 # Deceleration Set Below
-Jog_deceleration_sent = AMP_Axis.set_jog_deceleration(AMP_Axis_Convert.convert_acceleration_to_smunits(1000))
+Jog_deceleration_sent = AMP_Axis.set_jog_deceleration(AMP_Axis_Convert.convert_acceleration_to_smunits(3500))
 print(f"{AMP_Axis.identifier}  deceleration set to 100rps/s: {Jog_deceleration_sent}")
 
 
 # Jog Speed Set Below
-Jog_speed_sent = AMP_Axis.set_jog_speed(AMP_Axis_Convert.convert_speed_to_VEunits(25*60))  # 25 rps
+Jog_speed_sent = AMP_Axis.set_jog_speed(AMP_Axis_Convert.convert_speed_to_VEunits(30*60))  # 25 rps
 print(f"{AMP_Axis.identifier} jog speed sent?: {Jog_speed_sent}")
 
 
 # Start logging in a separate thread
-log_thread = threading.Thread(target=log_current, args=(AMP_Axis, "JL_1000_noRegen_25rps.txt", 10))
+log_thread = threading.Thread(target=log_values, args=(AMP_Axis, "JL_3500_noRegen_30rps4.txt", 10))
 log_thread.start()
-time.sleep(2)
+time.sleep(1.5)
 
 # Enable all motors
 SCL_cmd_sent = AMP_Axis.SCL_Command(ME)
