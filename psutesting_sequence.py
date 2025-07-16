@@ -81,7 +81,7 @@ print(f"Jog Motion in Progress: {Commence_jog_sent1}")
 
 
 # Logging loop for 30 minute
-log_time = 30
+log_time = 90
 log_filename = "current_log.txt" 
 runtime_seconds = log_time * 60
 start_time = time.time()
@@ -104,8 +104,10 @@ with open(log_filename, "w") as file:
         if keyboard.is_pressed('esc'):  
             print("Esc key pressed. Exiting the loop...")
             break
-
-        file.write(f"[{elapsed_time}, {immediate_current_value1}, {immediate_current_value2}, {immediate_current_value3}]\n")
+        total_current = immediate_current_value1*.001*18.3 + immediate_current_value2*.001*18.3 + immediate_current_value3*.001*10.0
+        minutes = elapsed_time // 60
+        seconds = elapsed_time % 60
+        file.write(f"[{minutes}mins {seconds}s, Auto: {immediate_current_value1}, Large: {immediate_current_value2}, Medium {immediate_current_value3}, total current: {total_current}\n")
         file.flush()
         
 
